@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trophy, Play, Flame } from 'lucide-react';
+import { Trophy, Play } from 'lucide-react';
 
 interface LobbyViewProps {
   nickname: string;
@@ -39,14 +39,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             두더지 게임
           </CardTitle>
           <CardDescription className="text-neutral-500 dark:text-neutral-400 text-sm sm:text-base mt-2 font-normal">
-            30초 동안 쉴 틈 없이 튀어나오는 두더지를 터치하세요!
+            30초동안 튀어나오는 두더지를 터치하세요!
           </CardDescription>
-
-          {/* 고난도 경고 뱃지 */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-4 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-semibold mx-auto">
-            <Flame className="w-3.5 h-3.5 fill-current" />
-            <span>하드코어 스피드 모드 적용됨</span>
-          </div>
         </CardHeader>
 
         {/* 폼 및 액션 영역 */}
