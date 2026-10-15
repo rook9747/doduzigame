@@ -1,69 +1,136 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState } from 'react';
+import { useWhackAMole } from '@/hooks/useWhackAMole';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
+import { GameResult } from '@/types/game';
+import { LobbyView } from '@/components/game/LobbyView';
+import { GameHud } from '@/components/game/GameHud';
+import { GameBoard } from '@/components/game/GameBoard';
+import { CountdownView } from '@/components/game/CountdownView';
+import { PauseModal } from '@/components/game/PauseModal';
+import { ResultView } from '@/components/game/ResultView';
+import { RankingModal } from '@/components/game/RankingModal';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Home() {
+  const [nickname, setNickname] = useState<string>('');
+  const [lastResult, setLastResult] = useState<GameResult | null>(null);
+  const [isRankingOpen, setIsRankingOpen] = useState<boolean>(false);
+
+  // 구글 시트 연동 훅
+  const {
+    rankings,
+    isLoading: isRankingLoading,
+    isSaving,
+    error: rankingError,
+    fetchRankings,
+    saveGameResult,
+  } = useLeaderboard();
+
+  // 게임 종료 시 콜백
+  const handleGameOver = async (result: GameResult) => {
+    setLastResult(result);
+    await saveGameResult(result);
+  };
+
+  // 두더지 잡기 핵심 로직 훅
+  const {
+    gameState,
+    countdown,
+    remainingTime,
+    score,
+    combo,
+    moles,
+    floatingTexts,
+    whack,
+    startGame,
+    pauseGame,
+    resumeGame,
+    restartGame,
+    goToLobby,
+  } = useWhackAMole(nickname, handleGameOver);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen flex flex-col justify-between bg-neutral-100/70 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 transition-colors select-none">
+      {/* 상단 네비게이션 바 / 테마 토글 버튼 */}
+      <header className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 font-bold text-lg tracking-tight">
+          <span className="text-xl">🐹</span>
+          <span>두더지 게임</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+        <ThemeToggle />
+      </header>
+
+      {/* 중앙 메인 콘텐츠 */}
+      <main className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6 w-full max-w-5xl mx-auto">
+        {/* 1. 로비 화면 (닉네임 입력 & 랭킹) */}
+        {gameState === 'LOBBY' && (
+          <LobbyView
+            nickname={nickname}
+            setNickname={setNickname}
+            onStart={startGame}
+            onOpenRanking={() => setIsRankingOpen(true)}
+          />
+        )}
+
+        {/* 2. 카운트다운 오버레이 */}
+        {gameState === 'COUNTDOWN' && <CountdownView countdown={countdown} />}
+
+        {/* 3. 게임 플레이 및 일시정지 화면 */}
+        {(gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'COUNTDOWN') && (
+          <div className="flex flex-col items-center w-full max-w-xl animate-in fade-in duration-200">
+            <GameHud
+              remainingTime={remainingTime}
+              score={score}
+              combo={combo}
+              onPause={pauseGame}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            <GameBoard
+              moles={moles}
+              onWhack={whack}
+              floatingTexts={floatingTexts}
+            />
+          </div>
+        )}
+
+        {/* 일시정지 모달 */}
+        {gameState === 'PAUSED' && (
+          <PauseModal
+            onResume={resumeGame}
+            onRestart={restartGame}
+            onGoToLobby={goToLobby}
+          />
+        )}
+
+        {/* 4. 게임 종료 및 결과 화면 */}
+        {gameState === 'GAME_OVER' && lastResult && (
+          <ResultView
+            result={lastResult}
+            isSaving={isSaving}
+            saveError={rankingError}
+            onRestart={restartGame}
+            onGoToLobby={goToLobby}
+            onOpenRanking={() => setIsRankingOpen(true)}
+          />
+        )}
+
+        {/* 랭킹 팝업 모달 */}
+        <RankingModal
+          isOpen={isRankingOpen}
+          onClose={() => setIsRankingOpen(false)}
+          rankings={rankings}
+          isLoading={isRankingLoading}
+          error={rankingError}
+          onRefresh={fetchRankings}
+          currentNickname={nickname}
+        />
       </main>
+
+      {/* 하단 푸터 (Footer) */}
+      <footer className="w-full py-6 text-center border-t border-neutral-200/60 dark:border-neutral-800/80 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 font-normal">
+        Copyright INU 카드 맞추기 게임 by Kyungrok Kim
+      </footer>
     </div>
   );
 }
